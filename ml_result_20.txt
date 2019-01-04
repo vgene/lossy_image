@@ -1,0 +1,12 @@
+Loss Rate: 20%
+
+Raw:
+mobilenet Result:  [('n02109961', 'Eskimo_dog', 0.7161318), ('n02110185', 'Siberian_husky', 0.25364137), ('n02110063', 'malamute', 0.026544793), ('n02091467', 'Norwegian_elkhound', 0.0011850102), ('n02113023', 'Pembroke', 0.0008777188)]
+With loss:
+mobilenet Result:  [('n04590129', 'window_shade', 0.9874994), ('n03271574', 'electric_fan', 0.004978479), ('n04589890', 'window_screen', 0.0026007057), ('n02788148', 'bannister', 0.00052311196), ('n02443484', 'black-footed_ferret', 0.00039827146)]
+With loss repaired:
+mobilenet Result:  [('n04590129', 'window_shade', 0.96192306), ('n02123394', 'Persian_cat', 0.0045192814), ('n03976657', 'pole', 0.003256076), ('n03271574', 'electric_fan', 0.0020799018), ('n02342885', 'hamster', 0.0018767602)]
+Interleave with loss:
+mobilenet Result:  [('n02097298', 'Scotch_terrier', 0.26528805), ('n02317335', 'starfish', 0.10708119), ('n01753488', 'horned_viper', 0.06671574), ('n02321529', 'sea_cucumber', 0.059846677), ('n03627232', 'knot', 0.033522923)]
+Interleave repaired:
+mobilenet Result:  [('n02110185', 'Siberian_husky', 0.67753273), ('n02109961', 'Eskimo_dog', 0.30346194), ('n02110063', 'malamute', 0.014108139), ('n02106662', 'German_shepherd', 0.0032502082), ('n02091467', 'Norwegian_elkhound', 0.00057626644)]
