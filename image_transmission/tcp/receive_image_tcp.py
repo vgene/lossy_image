@@ -2,6 +2,12 @@ import socket
 import sys
 import time
 
+# Settings
+def write_to_file(data, filename="cute_dog_save.bmp"):
+    f = open(filename, "wb")
+    f.write(data)
+    f.close()
+
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -31,7 +37,10 @@ while True:
             if not data:
                 #print('no more data from {}'.format(client_address))
                 print(len(image))
+                write_to_file(image)
                 break
+    except Exception as e:
+        print(e)
     finally:
         # Clean up the connection
         connection.close()
