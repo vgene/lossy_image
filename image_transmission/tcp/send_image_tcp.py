@@ -10,7 +10,7 @@ print('connecting to {} port {}'.format(*server_address))
 sock.connect(server_address)
 count = 0
 
-image = "./cutedog.bmp"
+image = "./cute_dog.bmp"
 fd = open(image, 'rb')
 message = fd.read()
 
