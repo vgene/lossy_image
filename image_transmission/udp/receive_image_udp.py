@@ -1,8 +1,10 @@
 import socket
 import sys
 import time
+import struct
 
-MAXTIMEOUT = 2000 # timeout in ms
+MAX_TIMEOUT = 2000 # timeout in ms
+ON_THE_FLY_THRES = 100
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -33,9 +35,10 @@ def buffer_and_reorder(packet):
     struct_format = ">LLL"
     meta_len = 12 # rand_identifier(long) | total_packet_number(long) | sequence_number(long)
     meta = packet[0:meta_len]
-    data = packet[meta_len+1:]
+    data = packet[meta_len:]
 
-    rand_identifier, total_packet_number, seq = struct.unpack(struct_format, var)
+    rand_identifier, total_packet_number, seq = struct.unpack(struct_format, meta)
+    print(seq)
 
     if rand_identifier not in active_set:
         active_set.add(rand_identifier)
@@ -48,6 +51,7 @@ def buffer_and_reorder(packet):
         active_files[rand_identifier][seq] = data
         active_files_meta[rand_identifier]['on_fly_num'] -= 1
         if (active_files_meta[rand_identifier]['on_fly_num'] == 0):
+        # if (active_files_meta[rand_identifier]['on_fly_num'] < ON_THE_FLY_THRES):
             file = b''.join(active_files[rand_identifier])
             del active_files[rand_identifier]
             del active_files_meta[rand_identifier]
@@ -55,7 +59,7 @@ def buffer_and_reorder(packet):
             return file
     return None
 
-buffer_size = 4096
+buffer_size = 8092
 while True:
     try:
         # Receive the data in small chunks and retransmit it
