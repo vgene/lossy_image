@@ -23,12 +23,12 @@ while True:
         while True:
             data = connection.recv(16)
             print('received {} bytes from {}'.format(len(data), client_address))
-            # if data:
-            #     print('sending data back to the client')
-            #     connection.sendall(data)
-            # else:
-            #     print('no more data from {}'.format(client_address))
-            #     break
+            if data:
+                print('sending data back to the client')
+                connection.sendall(data)
+            else:
+                print('no more data from {}'.format(client_address))
+                break
     finally:
         # Clean up the connection
         connection.close()
