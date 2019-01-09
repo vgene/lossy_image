@@ -12,9 +12,6 @@ import struct
 
 
 MAX_TIMEOUT = 2000 # timeout in ms
-X = 20
-Y = 10
-Z = 10
 ON_THE_FLY_THRES = 100
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
