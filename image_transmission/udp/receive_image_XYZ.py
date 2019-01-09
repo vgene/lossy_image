@@ -3,7 +3,18 @@ import sys
 import time
 import struct
 
+# X, Y, Z; For the first X% of packets,
+# a meta packet in every Y packets,
+# then sending Z EOF packet.
+
+# UDP Header
+# packet_type (i) |
+
+
 MAX_TIMEOUT = 2000 # timeout in ms
+X = 20
+Y = 10
+Z = 10
 ON_THE_FLY_THRES = 100
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -33,7 +44,7 @@ def buffer_and_reorder(packet):
 
     # get meta data
     struct_format = ">LLL"
-    meta_len = 12 # rand_identifier(long) | total_packet_number(long) | sequence_number(long)
+    meta_len = 12 # rand_identifier(long)  | sequence_number(long)
     meta = packet[0:meta_len]
     data = packet[meta_len:]
 
