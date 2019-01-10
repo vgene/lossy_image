@@ -46,12 +46,16 @@ def decode_and_reorder(packet):
     #   12- img_data
     def get_and_delete_file(rand_id):
         # Get time and calculate integrity
-        global start_time
-        print("--- Finished in {0:.4f} seconds, data integrity is {1:.4f}---"
-            .format(time.time() - start_time, 1.0 - (active_files[rand_id][1] / active_files[rand_id][3])))
-        file = active_files[rand_id][2] + b''.join(active_files[rand_id][0]) # combine img meta and data
-        # del active_files[rand_id]
-        return file
+        if active_files[rand_id][-1] == 0:
+            global start_time
+            print("--- Finished in {0:.4f} seconds, data integrity is {1:.4f}---"
+                .format(time.time() - start_time, 1.0 - (active_files[rand_id][1] / active_files[rand_id][3])))
+            file = active_files[rand_id][2] + b''.join(active_files[rand_id][0]) # combine img meta and data
+            active_files[rand_id][-1] = 1
+            # del active_files[rand_id]
+            return file
+        else:
+            return None
 
     def put_meta_in_dict(rand_id, packet):
         global start_time
@@ -65,7 +69,8 @@ def decode_and_reorder(packet):
 
         img_data = [bytearray([0] * chunk_size)] * (chunk_cnt-1) + [bytearray([0]*last_size)] # create an empty data
         remain_cnt = chunk_cnt
-        active_files[rand_id] = [img_data, remain_cnt, img_meta, chunk_cnt, chunk_size, last_size]
+        done = 0
+        active_files[rand_id] = [img_data, remain_cnt, img_meta, chunk_cnt, chunk_size, last_size, done]
         return None
 
 
@@ -85,6 +90,7 @@ def decode_and_reorder(packet):
 
     # if is meta data
     if ptype == META_TYPE:
+        print("got meta")
         if rand_id in active_files:
             return None
         else:
@@ -92,6 +98,7 @@ def decode_and_reorder(packet):
             return None
     # if is data
     elif ptype == DATA_TYPE:
+        print("got data")
         if rand_id not in active_files:
             print("Not in data")
             return None
@@ -99,6 +106,7 @@ def decode_and_reorder(packet):
             return put_data_in_dict(rand_id, packet)
     # if is EOF
     elif ptype == EOF_TYPE:
+        print("got eof")
         if rand_id not in active_files:
             return None
         else:
@@ -114,7 +122,6 @@ while True:
         file = decode_and_reorder(data)
         if file:
             write_to_file(file)
-            break
     except Exception as e:
         print(e)
         traceback.print_exc()
