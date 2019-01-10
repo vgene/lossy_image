@@ -1,6 +1,7 @@
 import socket
 import sys
 import struct
+import random
 import traceback
 
 # X, Y, Z; For the first X (percent) of packets,
@@ -15,12 +16,12 @@ DATA_TYPE =1
 EOF_TYPE = 2
 
 image_filename = "./cute_dog.bmp" # @TODO: change this
-CHUNK_SIZE = 4096 # @TODO: change this
+CHUNK_SIZE = 512 # @TODO: change this
 
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# server_address = ('10.0.2.2', 20008)
-server_address = ('127.0.0.1', 20008)
+server_address = ('10.0.2.2', 20008)
+#server_address = ('127.0.0.1', 20008)
 
 # Get size, offset, then split into all meta(fileheader, DIB, Color-table) and all data
 def get_bmp_meta_and_data(bmp_filename):
@@ -52,7 +53,7 @@ seq_X = int(chunk_cnt * X)
 # send packets
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # get random identifier
-rand_identifier = 2123 # @TODO: change this
+rand_identifier = random.randint(1,1000000)
 
 print("Start sending image")
 try:
@@ -81,7 +82,7 @@ try:
     # send EOF
     for i in range(0, Z):
         eof = struct.pack(">LL", EOF_TYPE, rand_identifier)
-        sock.sendto(meta, server_address)
+        sock.sendto(eof, server_address)
 
 except Exception as e:
     print("Something is wrong")
