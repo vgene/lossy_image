@@ -8,14 +8,19 @@ import traceback
 # then sending Z EOF packet.
 X = 0.2
 Y = 10
-Z = 10
+Z = 5
 
-META_TYPE = 0
-DATA_TYPE = 1
+META_TYPE =0
+DATA_TYPE =1
 EOF_TYPE = 2
 
 image_filename = "./cute_dog.bmp" # @TODO: change this
-chunk_size = 4096 # @TODO: change this
+CHUNK_SIZE = 4096 # @TODO: change this
+
+# Create a TCP/IP socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# server_address = ('10.0.2.2', 20008)
+server_address = ('127.0.0.1', 20008)
 
 # Get size, offset, then split into all meta(fileheader, DIB, Color-table) and all data
 def get_bmp_meta_and_data(bmp_filename):
@@ -37,43 +42,45 @@ def get_bmp_meta_and_data(bmp_filename):
 
     return meta, data
 
-# Create a TCP/IP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-server_address = ('10.0.2.2', 20008)
-
 img_meta, img_data = get_bmp_meta_and_data(image_filename)
-data_size = len(data)
-dp_cnt = (data_size // buffer_size) + ((data_size % buffer_size) > 0)
+data_size = len(img_data)
+chunk_cnt = (data_size // CHUNK_SIZE) + ((data_size % CHUNK_SIZE) > 0)
+last_size = data_size - (chunk_cnt - 1) * CHUNK_SIZE
 
-seq_X = dp_cnt * X
+seq_X = int(chunk_cnt * X)
 
 # send packets
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # get random identifier
 rand_identifier = 2123 # @TODO: change this
+
+print("Start sending image")
 try:
     # send data and meta
     seq = 0
-    while seq < dp_cnt:
+    p_cnt = 0
+    while seq < chunk_cnt:
         # send packets
-        if seq < seq_X and seq % Y == 0: # if
+        if seq < seq_X and p_cnt % Y == 0:
             # send meta
-            meta = struct.pack(">cLL", META_TYPE, rand_identifier, dp_cnt)
+            meta = struct.pack(">LLLLL", META_TYPE, rand_identifier, chunk_cnt, CHUNK_SIZE, last_size)
             meta = meta + img_meta
             sock.sendto(meta, server_address)
+            p_cnt += 1
         else:
             # send data
-            data = struct.pack(">cL", DATA_TYPE, rand_identifier)
+            data = struct.pack(">LLL", DATA_TYPE, rand_identifier, seq)
             # check if it is last packet
-            if seq == dp_cnt - 1:
-                data = data + img_data[chunk_size*seq :]
+            if seq == chunk_cnt - 1:
+                data = data + img_data[CHUNK_SIZE*seq :]
             else:
-                data = data + img_data[chunk_size*seq : chunk_size*(seq+1)]
+                data = data + img_data[CHUNK_SIZE*seq : CHUNK_SIZE*(seq+1)]
             seq += 1
-            sock.sendto(meta, server_address)
+            p_cnt += 1
+            sock.sendto(data, server_address)
     # send EOF
     for i in range(0, Z):
-        eof = struct.pack(">cL", EOF_TYPE, rand_identifier)
+        eof = struct.pack(">LL", EOF_TYPE, rand_identifier)
         sock.sendto(meta, server_address)
 
 except Exception as e:
@@ -81,3 +88,5 @@ except Exception as e:
     traceback.print_exc()
 finally:
     sock.close()
+print("Finish sending image")
+

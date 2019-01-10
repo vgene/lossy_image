@@ -2,15 +2,16 @@ import socket
 import sys
 import time
 import struct
+import traceback
 
-# X, Y, Z; For the first X% of packets,
-# a meta packet in every Y packets,
-# then sending Z EOF packet.
+# To be done:
+# need to add active file retirement policy
 
-# UDP Header
-# packet_type (i) |
+META_TYPE = 0
+DATA_TYPE = 1
+EOF_TYPE = 2
 
-
+BUFFER_SIZE = 8192
 MAX_TIMEOUT = 2000 # timeout in ms
 ON_THE_FLY_THRES = 100
 # Create a TCP/IP socket
@@ -29,55 +30,91 @@ def write_to_file(data, filename="cute_dog_save.bmp"):
     f.write(data)
     f.close()
 
-# UDP: total_packet_number(? bits) | interleave_protocol_number(2-3 bits) |
-#      sequence_number(? bits) | rand_identifier (? bits) |
-#      meta_data (? bits) | interleaved_data
-
-active_set = set()
 active_files = dict()
-active_files_meta = dict() # file meta; total_packet_number | on_fly_packet_number
+start_time = 0
 
-def buffer_and_reorder(packet):
+def decode_and_reorder(packet):
+    # 0-3 packet_type
+    # 4-7 rand_id
+    # * if meta
+    #   8-11 chunk_cnt
+    #   12-15 chunk_size
+    #   16-19 last_chunk_size
+    #   20- bmp_meta_data
+    # * if data
+    #   9-11 seq
+    #   12- img_data
+    def get_and_delete_file(rand_id):
+        # Get time and calculate integrity
+        global start_time
+        print("--- Finished in {0:.4f} seconds, data integrity is {1:.4f}---"
+            .format(time.time() - start_time, 1.0 - (active_files[rand_id][1] / active_files[rand_id][3])))
+        file = active_files[rand_id][2] + b''.join(active_files[rand_id][0]) # combine img meta and data
+        # del active_files[rand_id]
+        return file
+
+    def put_meta_in_dict(rand_id, packet):
+        global start_time
+        start_time = time.time()
+        chunk_cnt = struct.unpack(">L", packet[8:12])[0]
+        chunk_size = struct.unpack(">L", packet[12:16])[0]
+        last_size = struct.unpack(">L", packet[16:20])[0]
+        img_meta = packet[20:]
+        if (chunk_size > 50000 or chunk_cnt > 50000):
+            print("Bad meta; Abandon!")
+
+        img_data = [bytearray([0] * chunk_size)] * (chunk_cnt-1) + [bytearray([0]*last_size)] # create an empty data
+        remain_cnt = chunk_cnt
+        active_files[rand_id] = [img_data, remain_cnt, img_meta, chunk_cnt, chunk_size, last_size]
+        return None
+
+
+    def put_data_in_dict(rand_id, packet):
+        seq = struct.unpack(">L", packet[8:12])[0]
+        active_files[rand_id][0][seq] = packet[12:] # put image chunk in place
+        active_files[rand_id][1] -= 1 # decrease remain count
+
+        if active_files[rand_id][1] == 0:
+            return get_and_delete_file(rand_id)
+        else:
+            return None
 
     # get meta data
-    struct_format = ">LLL"
-    meta_len = 12 # rand_identifier(long)  | sequence_number(long)
-    meta = packet[0:meta_len]
-    data = packet[meta_len:]
+    ptype = struct.unpack(">L", packet[0:4])[0]
+    rand_id = struct.unpack(">L", packet[4:8])[0]
 
-    rand_identifier, total_packet_number, seq = struct.unpack(struct_format, meta)
-    print(seq)
-
-    if rand_identifier not in active_set:
-        active_set.add(rand_identifier)
-        active_files[rand_identifier] = [None]*total_packet_number # create a list to hold data
-        active_files[rand_identifier][seq] = data
-        active_files_meta[rand_identifier] = dict()
-        active_files_meta[rand_identifier]['total_num'] = total_packet_number
-        active_files_meta[rand_identifier]['on_fly_num'] = total_packet_number - 1
+    # if is meta data
+    if ptype == META_TYPE:
+        if rand_id in active_files:
+            return None
+        else:
+            put_meta_in_dict(rand_id, packet)
+            return None
+    # if is data
+    elif ptype == DATA_TYPE:
+        if rand_id not in active_files:
+            print("Not in data")
+            return None
+        else:
+            return put_data_in_dict(rand_id, packet)
+    # if is EOF
+    elif ptype == EOF_TYPE:
+        if rand_id not in active_files:
+            return None
+        else:
+            return get_and_delete_file(rand_id)
+    # something is wrong!
     else:
-        active_files[rand_identifier][seq] = data
-        active_files_meta[rand_identifier]['on_fly_num'] -= 1
-        if (active_files_meta[rand_identifier]['on_fly_num'] == 0):
-        # if (active_files_meta[rand_identifier]['on_fly_num'] < ON_THE_FLY_THRES):
-            file = b''.join(active_files[rand_identifier])
-            del active_files[rand_identifier]
-            del active_files_meta[rand_identifier]
-            active_set.remove(rand_identifier)
-            return file
-    return None
+        return None
 
-buffer_size = 8192
 while True:
     try:
         # Receive the data in small chunks and retransmit it
-        data, address = sock.recvfrom(buffer_size)
-        start_time = time.time()
-        file = buffer_and_reorder(data)
+        data, address = sock.recvfrom(BUFFER_SIZE)
+        file = decode_and_reorder(data)
         if file:
-            end_time = time.time()
-            print("--- {0:.4f} seconds ---".format(time.time() - start_time))
             write_to_file(file)
             break
     except Exception as e:
         print(e)
+        traceback.print_exc()
