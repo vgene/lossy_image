@@ -4,16 +4,16 @@ import ssim
 import psnr
 import niqe
 import reco
-# import emulater
+from image_loss_recovery_emulator.imageproc import create_damaged_images_set
 import pickle
 import matplotlib.pyplot as plt
 import scipy
 import numpy
 
-
-file_list = ["truck"]
+file_list = ["airplane", "automobile", "bird", "cat", "deer",
+             "dog", "frog", "horse", "ship", "truck"]
 # loss_rate_list = [0.02, 0.04, 0.06, 0.08, 0.10, 0.2, 0.3]
-loss_rate_list = [0.5, 1]
+loss_rate_list = [0.02, 0.04, 0.06, 0.08, 0.10, 0.2, 0.3, 0.4]
 quality_metric_list = ["vifp", "psnr", "ssim"]
 
 # use numpy array to get three quality
@@ -63,11 +63,11 @@ def one_name_to_all_result(name):
 
 
 # generate file_lr_id.bmp, lr in loss rate list, id in [0,5]
-def emulator_file_list_at_all_loss_rate(file_list, loss_rate_list):
+def emulator_file_list_at_all_loss_rate(path, file_list, loss_rate_list):
     for loss_rate in loss_rate_list:
         for filename in file_list:
             # todo: need to check the existence of the files
-            emulator.emulate_image_at_loss_rate(filename+".bmp", loss_rate, redo=false) # loss rate here is a float
+            create_damaged_images_set(path+filename+".bmp", loss_rate, redo=False) # loss rate here is a float
 
 # get 1,2,3,4 results, for filename_string of loss rate
 def get_result_for_one_file_at_loss_rate(filename, loss_rate):
@@ -81,11 +81,12 @@ def get_result_for_one_file_at_loss_rate(filename, loss_rate):
 # {"10":{"cute_dog":[{"vifp":0.2, "psnr":0.3, "ssim":0.4}, ..., ..., ...], "xxx":[...]},
 #  "20":...}
 
-def get_all_result(file_list, loss_rate_list):
+def get_all_result(path, file_list, loss_rate_list):
     dataset_result = {}
     for loss_rate in loss_rate_list:
         loss_rate_result = {}
         for filename in file_list:
+            filename = path + filename
             loss_rate_result[filename] = get_result_for_one_file_at_loss_rate(filename, loss_rate)
         # loss_rate_str = str(int(loss_rate*100))
         dataset_result[loss_rate] = loss_rate_result
@@ -118,21 +119,24 @@ def parse_dataset_result_for_one_metric(dataset_result, metric):
         interleave_fix_list.append(sum(value3_list) / len(value3_list))
         loss_rate_list.append(loss_rate)
 
-    print(loss_list)
-
     plt.plot(loss_rate_list, loss_list, label="Loss without recover")
     plt.plot(loss_rate_list, loss_fix_list, label="Loss with recover")
     plt.plot(loss_rate_list, interleave_list, label="Interleave without recover")
     plt.plot(loss_rate_list, interleave_fix_list, label="Interleave with recover")
 
-    plt.legend(loc='lower right')
+    plt.legend(loc='upper right')
     plt.xlabel('Loss Rate')
     plt.ylabel('Metric')
     plt.savefig('quality_vs_loss_rate_'+metric+'.png')
     plt.gcf().clear()
 
+print("Emulating all files")
+emulator_file_list_at_all_loss_rate("./testset/", file_list, loss_rate_list)
 
-dataset_result = get_all_result(file_list, loss_rate_list)
+print("Getting results")
+dataset_result = get_all_result("./testset/", file_list, loss_rate_list)
+
+print("Generating plots")
 parse_dataset_result_for_one_metric(dataset_result, 'vifp')
 parse_dataset_result_for_one_metric(dataset_result, 'psnr')
 parse_dataset_result_for_one_metric(dataset_result, 'ssim')

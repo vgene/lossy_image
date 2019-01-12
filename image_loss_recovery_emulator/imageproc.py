@@ -5,9 +5,7 @@ import os
 
 np.random.seed(7)
 
-
 # loss_rate = 0.2
-
 
 def permute_pixels(image):
     t = image.shape
@@ -103,8 +101,7 @@ def recover(img, mask, chunk_size):
 
     return dst
 
-
-def create_damaged_images_set(filename, loss_rate):
+def create_damaged_images_set(filename, loss_rate, redo=True):
     orig_name = os.path.splitext(filename)[0]
     lr = str(int(loss_rate * 100))
     orig_name = orig_name + '_' + lr
@@ -113,6 +110,15 @@ def create_damaged_images_set(filename, loss_rate):
     lossy_and_repaired_name = orig_name + '_2.bmp'
     inter_deinter_name = orig_name + '_3.bmp'
     inter_deinter_repaired_name = orig_name + '_4.bmp'
+
+    if not redo:
+        exists = os.path.isfile(raw_img_name)
+        exists = exists and os.path.isfile(lossy_img_name)
+        exists = exists and os.path.isfile(lossy_and_repaired_name)
+        exists = exists and os.path.isfile(inter_deinter_name)
+        exists = exists and os.path.isfile(inter_deinter_repaired_name)
+        if (exists):
+            return
 
     image = cv2.imread(filename, cv2.IMREAD_COLOR)
 
@@ -141,6 +147,3 @@ def create_damaged_images_set(filename, loss_rate):
     repaired = recover(reconstructed, reconstructed_mask, chunk_size=150)
 
     cv2.imwrite(inter_deinter_repaired_name, repaired)
-
-
-create_damaged_images_set('/Users/zsw95/Desktop/husky photos/husky.bmp', 0.2)
