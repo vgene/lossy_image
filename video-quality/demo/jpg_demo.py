@@ -13,8 +13,11 @@ import reco
 
 import matplotlib.pyplot as plt
 
-ref_file = 'lena.png'
-dist_file = 'lena_tmp.jpg'
+#ref_file = 'lena.png'
+ref_file = 'cute_dog.bmp'
+dist_file = 'cute_dog.bmp'
+#dist_file = 'cute_dog_save.bmp'
+#dist_file = 'lena_tmp.jpg'
 
 ref = scipy.misc.imread(ref_file, flatten=True).astype(numpy.float32)
 
@@ -29,7 +32,7 @@ reco_values = []
 plt.figure(figsize=(8, 8))
 
 for quality in range(10, 101, 10):
-    subprocess.check_call('convert %s -quality %d %s'%(ref_file, quality, dist_file), shell=True)
+    #subprocess.check_call('convert %s -quality %d %s'%(ref_file, quality, dist_file), shell=True)
     file_size = os.path.getsize(dist_file)
 
     dist = scipy.misc.imread(dist_file, flatten=True).astype(numpy.float32)
