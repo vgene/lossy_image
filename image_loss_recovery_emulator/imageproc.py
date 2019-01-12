@@ -84,7 +84,7 @@ def display_result(img, title='Image', show=1):
         cv2.destroyAllWindows()
 
 
-def recover(img, mask, chunk_size):
+def recover(img, mask, loss_rate, chunk_size=150):
     # indices = np.where(img == [0])
     row, col, d = img.shape
     z = np.zeros((row, col), dtype=np.uint8)
@@ -94,10 +94,20 @@ def recover(img, mask, chunk_size):
         z[start_idx:start_idx + chunk_size] = 1
     z = np.reshape(z, (row, col))
 
-    dst = cv2.inpaint(img, z, 7, cv2.INPAINT_TELEA)
-    dst = cv2.medianBlur(dst, 7)
-    dst = cv2.inpaint(dst, z, 5, cv2.INPAINT_TELEA)
-    dst = cv2.medianBlur(dst, 5)
+    if loss_rate > 0.3:
+        dst = cv2.inpaint(img, z, 13, cv2.INPAINT_TELEA)
+        dst = cv2.medianBlur(dst, 13)
+        dst = cv2.inpaint(dst, z, 9, cv2.INPAINT_TELEA)
+        dst = cv2.medianBlur(dst, 9)
+    elif loss_rate > 0.15:
+        dst = cv2.inpaint(img, z, 7, cv2.INPAINT_TELEA)
+        dst = cv2.medianBlur(dst, 7)
+        dst = cv2.inpaint(dst, z, 5, cv2.INPAINT_TELEA)
+        dst = cv2.medianBlur(dst, 5)
+    else:
+        dst = cv2.medianBlur(img, 3)
+        dst = cv2.inpaint(dst, z, 3, cv2.INPAINT_TELEA)
+        dst = cv2.medianBlur(dst, 3)
 
     return dst
 
@@ -125,25 +135,26 @@ def create_damaged_images_set(filename, loss_rate, redo=True):
     cv2.imwrite(raw_img_name, image)
 
     shortName = filename.split('.')[0]
-    original_scheme, mask = apply_loss_to_img(image, loss_rate, chunk_size=150)
+    original_scheme, mask = apply_loss_to_img(image, loss_rate, chunk_size=512)
     # display_result(original_scheme)
     cv2.imwrite(lossy_img_name, original_scheme)
 
     # try_repaired = cv2.medianBlur(original_scheme, 5)
-    try_repaired = recover(original_scheme, mask, chunk_size=150)
+    try_repaired = recover(original_scheme, mask, loss_rate, chunk_size=512)
 
     cv2.imwrite(lossy_and_repaired_name, try_repaired)
 
     (perm_img, d, row, col) = permute_pixels(image)
     # cv2.imwrite(shortName + '_interleaved' + '.bmp', perm_img)
 
-    dmg_permuted_img, mask = apply_loss_to_img(perm_img, loss_rate, chunk_size=150)
+    dmg_permuted_img, mask = apply_loss_to_img(perm_img, loss_rate, chunk_size=512)
     # cv2.imwrite(shortName + '_interleaved_then_with_loss' + '.bmp', dmg_permuted_img)
 
     reconstructed, reconstructed_mask = reconstruct_pixels(dmg_permuted_img, d, row, col, mask)
     cv2.imwrite(inter_deinter_name, reconstructed)
 
     # repaired = cv2.medianBlur(reconstructed, 5)
-    repaired = recover(reconstructed, reconstructed_mask, chunk_size=150)
+    repaired = recover(reconstructed, reconstructed_mask, loss_rate, chunk_size=512)
 
     cv2.imwrite(inter_deinter_repaired_name, repaired)
+
