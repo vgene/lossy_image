@@ -4,14 +4,16 @@ import ssim
 import psnr
 import niqe
 import reco
-import emulater
+# import emulater
 import pickle
 import matplotlib.pyplot as plt
+import scipy
+import numpy
 
 
-file_list = ["cute_dog"]
+file_list = ["truck"]
 # loss_rate_list = [0.02, 0.04, 0.06, 0.08, 0.10, 0.2, 0.3]
-loss_rate_list = [0.2]
+loss_rate_list = [0.5, 1]
 quality_metric_list = ["vifp", "psnr", "ssim"]
 
 # use numpy array to get three quality
@@ -54,7 +56,7 @@ def ref_and_dist_list_to_quality_list(ref, dist_list):
 
 def one_name_to_all_result(name):
     ref_filename = name + "_0.bmp"
-    dist_filename_list = [name + "_" n + ".bmp" for n in["1", "2", "3", "4"]]
+    dist_filename_list = [name + "_" + n + ".bmp" for n in["1", "2", "3", "4"]]
     ref = scipy.misc.imread(ref_filename, flatten=True).astype(numpy.float32)
     dist_list = [scipy.misc.imread(dist_filename, flatten=True).astype(numpy.float32) for dist_filename in dist_filename_list]
     return ref_and_dist_list_to_quality_list(ref, dist_list)
@@ -71,7 +73,7 @@ def emulator_file_list_at_all_loss_rate(file_list, loss_rate_list):
 def get_result_for_one_file_at_loss_rate(filename, loss_rate):
     # convert loss rate to string
     loss_rate_str = str(int(loss_rate*100))
-    name = filename + "_" + loss_rate_list
+    name = filename + "_" + loss_rate_str
     return one_name_to_all_result(name)
 
 
@@ -88,7 +90,7 @@ def get_all_result(file_list, loss_rate_list):
         # loss_rate_str = str(int(loss_rate*100))
         dataset_result[loss_rate] = loss_rate_result
 
-    pickle.dump(dataset_result, output = open('data.pkl', 'wb'))
+    pickle.dump(dataset_result, open('data.pkl', 'wb'))
     return dataset_result
 
 def parse_dataset_result_for_one_metric(dataset_result, metric):
@@ -105,9 +107,9 @@ def parse_dataset_result_for_one_metric(dataset_result, metric):
         value3_list = []
         # get average quality for all files under one loss rate
         for filename, result in lr_result.items():
-            value0_list.append(result[0][metric])
+            value0_list.append(result[0][metric]) # loss
             value1_list.append(result[1][metric])
-            value2_list.append(result[2][metric])
+            value2_list.append(result[2][metric]) # interleave
             value3_list.append(result[3][metric])
 
         loss_list.append(sum(value0_list) / len(value0_list))
@@ -115,6 +117,8 @@ def parse_dataset_result_for_one_metric(dataset_result, metric):
         interleave_list.append(sum(value2_list) / len(value2_list))
         interleave_fix_list.append(sum(value3_list) / len(value3_list))
         loss_rate_list.append(loss_rate)
+
+    print(loss_list)
 
     plt.plot(loss_rate_list, loss_list, label="Loss without recover")
     plt.plot(loss_rate_list, loss_fix_list, label="Loss with recover")
@@ -124,5 +128,11 @@ def parse_dataset_result_for_one_metric(dataset_result, metric):
     plt.legend(loc='lower right')
     plt.xlabel('Loss Rate')
     plt.ylabel('Metric')
-    plt.savefig('quality_vs_loss_rate.png')
+    plt.savefig('quality_vs_loss_rate_'+metric+'.png')
+    plt.gcf().clear()
 
+
+dataset_result = get_all_result(file_list, loss_rate_list)
+parse_dataset_result_for_one_metric(dataset_result, 'vifp')
+parse_dataset_result_for_one_metric(dataset_result, 'psnr')
+parse_dataset_result_for_one_metric(dataset_result, 'ssim')
