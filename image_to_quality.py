@@ -119,24 +119,25 @@ def parse_dataset_result_for_one_metric(dataset_result, metric):
         interleave_fix_list.append(sum(value3_list) / len(value3_list))
         loss_rate_list.append(loss_rate)
 
-    plt.plot(loss_rate_list, loss_list, label="Loss without recover")
-    plt.plot(loss_rate_list, loss_fix_list, label="Loss with recover")
-    plt.plot(loss_rate_list, interleave_list, label="Interleave without recover")
-    plt.plot(loss_rate_list, interleave_fix_list, label="Interleave with recover")
+    plt.plot(loss_rate_list, loss_list, label="Loss without recovery")
+    plt.plot(loss_rate_list, loss_fix_list, label="Loss with recovery")
+    plt.plot(loss_rate_list, interleave_list, label="Interleaving without recovery")
+    plt.plot(loss_rate_list, interleave_fix_list, label="Interleaving with recovery")
 
     plt.legend(loc='upper right')
     plt.xlabel('Loss Rate')
-    plt.ylabel('Metric')
+    plt.ylabel(metric.upper()+' Metric')
     plt.savefig('quality_vs_loss_rate_'+metric+'.png')
     plt.gcf().clear()
 
-print("Emulating all files")
-emulator_file_list_at_all_loss_rate("./testset/", file_list, loss_rate_list, redo=True)
+if __name__ == "__main__":
+    print("Emulating all files")
+    emulator_file_list_at_all_loss_rate("./testset/", file_list, loss_rate_list, redo=False)
 
-print("Getting results")
-dataset_result = get_all_result("./testset/", file_list, loss_rate_list)
+    print("Getting results")
+    dataset_result = get_all_result("./testset/", file_list, loss_rate_list)
 
-print("Generating plots")
-parse_dataset_result_for_one_metric(dataset_result, 'vifp')
-parse_dataset_result_for_one_metric(dataset_result, 'psnr')
-parse_dataset_result_for_one_metric(dataset_result, 'ssim')
+    print("Generating plots")
+    parse_dataset_result_for_one_metric(dataset_result, 'vifp')
+    parse_dataset_result_for_one_metric(dataset_result, 'psnr')
+    parse_dataset_result_for_one_metric(dataset_result, 'ssim')
