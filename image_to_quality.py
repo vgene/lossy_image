@@ -1,9 +1,9 @@
 # Py3
-import vifp
-import ssim
-import psnr
-import niqe
-import reco
+from video_quality import vifp
+from video_quality import ssim
+from video_quality import psnr
+from video_quality import niqe
+from video_quality import reco
 from image_loss_recovery_emulator.imageproc import create_damaged_images_set
 import pickle
 import matplotlib.pyplot as plt
@@ -63,11 +63,11 @@ def one_name_to_all_result(name):
 
 
 # generate file_lr_id.bmp, lr in loss rate list, id in [0,5]
-def emulator_file_list_at_all_loss_rate(path, file_list, loss_rate_list):
+def emulator_file_list_at_all_loss_rate(path, file_list, loss_rate_list, redo=False):
     for loss_rate in loss_rate_list:
         for filename in file_list:
             # todo: need to check the existence of the files
-            create_damaged_images_set(path+filename+".bmp", loss_rate, redo=False) # loss rate here is a float
+            create_damaged_images_set(path+filename+".bmp", loss_rate, redo=redo) # loss rate here is a float
 
 # get 1,2,3,4 results, for filename_string of loss rate
 def get_result_for_one_file_at_loss_rate(filename, loss_rate):
@@ -131,7 +131,7 @@ def parse_dataset_result_for_one_metric(dataset_result, metric):
     plt.gcf().clear()
 
 print("Emulating all files")
-emulator_file_list_at_all_loss_rate("./testset/", file_list, loss_rate_list)
+emulator_file_list_at_all_loss_rate("./testset/", file_list, loss_rate_list, redo=True)
 
 print("Getting results")
 dataset_result = get_all_result("./testset/", file_list, loss_rate_list)
