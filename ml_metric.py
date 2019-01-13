@@ -26,7 +26,7 @@ model_fn_mapping = {"xception": xception.Xception, "vgg16":vgg16.VGG16, "resnet5
                 "densenet121": densenet.DenseNet121, "densenet169": densenet.DenseNet169, "densenet201": densenet.DenseNet201,
                 "nasnetlarge": nasnet.NASNetLarge, "nasnetmobile": nasnet.NASNetMobile}
 
-base_class_mapping = preprocess_fn_mapping = {"xception": xception, "vgg16":vgg16, "resnet50":resnet50, "inception_v3": inception_v3,
+base_class_mapping = {"xception": xception, "vgg16":vgg16, "resnet50":resnet50, "inception_v3": inception_v3,
                 "inception_resnet_v2": inception_resnet_v2, "mobilenet": mobilenet, "mobilenet_v2": mobilenet_v2,
                 "densenet121": densenet, "densenet169": densenet, "densenet201": densenet,
                 "nasnetlarge": nasnet, "nasnetmobile": nasnet}
@@ -54,6 +54,10 @@ def decode_top_1_result(predictions, model_name = "Not Specific"):
     label = decode_predictions(predictions)
     return label[0][0]
 
+def decode_top_5_result(predictions, model_name = "Not Specific"):
+    label = decode_predictions(predictions)
+    return label[0]
+
 def get_model(model_name, model_fn_mapping):
     model_fn = model_fn_mapping[model_name]
     model_fn = partial(model_fn, include_top=True, weights='imagenet', classes=1000) # General configs
@@ -64,6 +68,14 @@ def get_model(model_name, model_fn_mapping):
 
     model = model_fn()
     return model
+
+def get_model_with_name_only(model_name):
+    model_fn_mapping = {"xception": xception.Xception, "vgg16":vgg16.VGG16, "resnet50":resnet50.ResNet50, "inception_v3": inception_v3.InceptionV3,
+                "inception_resnet_v2": inception_resnet_v2.InceptionResNetV2, "mobilenet": mobilenet.MobileNet, "mobilenet_v2": mobilenet_v2.MobileNetV2,
+                "densenet121": densenet.DenseNet121, "densenet169": densenet.DenseNet169, "densenet201": densenet.DenseNet201,
+                "nasnetlarge": nasnet.NASNetLarge, "nasnetmobile": nasnet.NASNetMobile}
+
+    return get_model(model_name, model_fn_mapping)
 
 def iterate_model_running_using_one_image(filename, enable_set):
     for idx, model_name in enumerate(enable_set):
@@ -76,43 +88,60 @@ def iterate_model_running_using_one_image(filename, enable_set):
         decode_and_print_result(predictions = predictions, model_name = model_name)
 
 
-def using_model_to_get_predictions(filename, model):
+def using_model_to_get_predictions(filename, model, model_name):
     # print("Using Model: "+model_name)
     preprocess_fn = preprocess_fn_mapping[model_name]
     # print(model_name+" loaded")
     predictions = get_result(model = model, filename = filename, preprocess_fn = preprocess_fn)
     return predictions
 
-def get_correctness_using_file_and_attribute(filename, attribute, model):
+def get_top_1_attribute_and_name_and_accuracy(filename, model, model_name):
     preprocess_fn = preprocess_fn_mapping[model_name]
     predictions = get_result(model = model, filename = filename, preprocess_fn = preprocess_fn)
     attr, name, acc = decode_top_1_result(predictions)
-    print(attr)
+    return attr, name, acc
+
+def get_top_n_correctness_using_file_and_attribute(filename, attribute, model, model_name, top_n = 1):
+    preprocess_fn = preprocess_fn_mapping[model_name]
+    predictions = get_result(model = model, filename = filename, preprocess_fn = preprocess_fn)
+    attr_list = decode_top_5_result(predictions)
+    for attr, name, acc in attr_list[0:top_n]:
+        if attr == attribute:
+            return 1
+
+    return 0
+
+def get_correctness_using_file_and_attribute(filename, attribute, model, model_name):
+    attr, name, acc = get_top_1_attribute_and_name_and_accuracy(filename, model, model_name)
     if (attr == attribute):
         return 1
     else:
         return 0
 
 # get 1,2,3,4 results, for filename_string of loss rate
-def get_ml_result_for_one_file_at_loss_rate(filename, loss_rate, attribute, model):
+def get_ml_result_for_one_file_at_loss_rate(filename, loss_rate, attribute, model, model_name):
     # convert loss rate to string
     loss_rate_str = str(int(loss_rate*100))
     name = filename + "_" + loss_rate_str
     dist_filename_list = [name + "_" + n + ".bmp" for n in["1", "2", "3", "4"]]
     result_list = []
     for filename in dist_filename_list:
-        result_list.append(get_correctness_using_file_and_attribute(filename, attribute, model))
+        result_list.append(get_top_n_correctness_using_file_and_attribute(filename, attribute, model, model_name, top_n=5))
+        # result_list.append(get_correctness_using_file_and_attribute(filename, attribute, model, model_name))
     return result_list
 
-def get_all_ml_result(path, file_list, loss_rate_list, attribute_list, model):
+def get_all_ml_result(path, name_list, loss_rate_list, attribute_dict, model, model_name):
     dataset_result = {}
     for loss_rate in loss_rate_list:
         loss_rate_result = {}
-        for idx, filename in enumerate(file_list):
-            filename = path + filename
-            loss_rate_result[filename] = get_ml_result_for_one_file_at_loss_rate(filename, loss_rate, attribute_list[idx], model)
+        for name in name_list:
+            for i in range(10):
+                filename = name+str(i)
+                filepath = path + filename
+                loss_rate_result[filename] = get_ml_result_for_one_file_at_loss_rate(filepath, loss_rate, attribute_dict[filename][0], model, model_name)
         # loss_rate_str = str(int(loss_rate*100))
         dataset_result[loss_rate] = loss_rate_result
+        print(dataset_result)
 
     pickle.dump(dataset_result, open('data_ml.pkl', 'wb'))
     return dataset_result
@@ -131,7 +160,7 @@ def parse_ml_result(dataset_result, metric):
         value2_list = []
         value3_list = []
         # get average quality for all files under one loss rate
-        for filename, result in lr_result.items():
+        for name, result in lr_result.items():
             value0_list.append(result[0]) # loss
             value1_list.append(result[1])
             value2_list.append(result[2]) # interleave
@@ -150,34 +179,31 @@ def parse_ml_result(dataset_result, metric):
 
     plt.legend(loc='upper right')
     plt.xlabel('Loss Rate')
-    plt.ylabel('Top 1 Accuracy for model '+metric)
+    plt.ylabel('Top 5 Accuracy for model '+metric)
     plt.savefig(metric+'_top_1_acc_vs_loss_rate.png')
     plt.gcf().clear()
 
 if __name__ == "__main__":
-    file_list = ["airplane", "automobile", "bird", "cat", "deer",
+    name_list = ["airplane", "automobile", "bird", "cat", "deer",
                  "dog", "frog", "horse", "ship", "truck"]
+    # name_list = ["airplane"]
     loss_rate_list = [0.02, 0.04, 0.06, 0.08, 0.10, 0.2, 0.3, 0.4]
-    attribute_list = ["n02690373", #airliner
-                    "n04285008", #sports_car
-                    "n01622779", #great_grey_owl
-                    "n02123045", #tabby
-                    "n02422106", #hartebeest
-                    "n02099601", #golden_retriever
-                    "n01644373", #tree_frog
-                    "n02389026", #sorrel
-                    "n03673027", #liner
-                    "n04467665", #trailer_truck
-                    ]
+
+    attribute_dict = pickle.load(open("gt_attr.pkl", 'rb'))
 
     path = "./testset/"
     print("Emulating all files")
+
+    file_list = []
+    for name in name_list:
+        for i in range(10):
+            file_list.append(name+str(i))
     emulator_file_list_at_all_loss_rate(path, file_list, loss_rate_list, redo=False)
 
     print("Getting results")
-    model_name = "nasnetmobile"
+    model_name = "mobilenet"
     model = get_model(model_name = model_name ,model_fn_mapping = model_fn_mapping)
-    dataset_result = get_all_ml_result(path, file_list, loss_rate_list, attribute_list, model)
+    dataset_result = get_all_ml_result(path, name_list, loss_rate_list, attribute_dict, model, model_name)
 
     print("Generating plots")
     parse_ml_result(dataset_result, metric=model_name)

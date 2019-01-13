@@ -86,8 +86,10 @@ def get_all_result(path, file_list, loss_rate_list):
     for loss_rate in loss_rate_list:
         loss_rate_result = {}
         for filename in file_list:
-            filename = path + filename
-            loss_rate_result[filename] = get_result_for_one_file_at_loss_rate(filename, loss_rate)
+            for i in range(10):
+                filename = name+str(i)
+                filepath = path + filename
+                loss_rate_result[filename] = get_result_for_one_file_at_loss_rate(filepath, loss_rate)
         # loss_rate_str = str(int(loss_rate*100))
         dataset_result[loss_rate] = loss_rate_result
 
@@ -132,7 +134,12 @@ def parse_dataset_result_for_one_metric(dataset_result, metric):
 
 if __name__ == "__main__":
     print("Emulating all files")
-    emulator_file_list_at_all_loss_rate("./testset/", file_list, loss_rate_list, redo=False)
+
+    all_file_list = []
+    for name in file_list:
+        for i in range(10):
+            all_file_list.append(name+str(i))
+    emulator_file_list_at_all_loss_rate("./testset/", all_file_list, loss_rate_list, redo=False)
 
     print("Getting results")
     dataset_result = get_all_result("./testset/", file_list, loss_rate_list)
