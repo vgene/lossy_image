@@ -85,7 +85,7 @@ def get_all_result(path, file_list, loss_rate_list):
     dataset_result = {}
     for loss_rate in loss_rate_list:
         loss_rate_result = {}
-        for filename in file_list:
+        for name in file_list:
             for i in range(10):
                 filename = name+str(i)
                 filepath = path + filename
