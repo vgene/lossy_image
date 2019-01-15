@@ -187,7 +187,7 @@ if __name__ == "__main__":
     name_list = ["airplane", "automobile", "bird", "cat", "deer",
                  "dog", "frog", "horse", "ship", "truck"]
     # name_list = ["airplane"]
-    loss_rate_list = [0.02, 0.04, 0.06, 0.08, 0.10, 0.2, 0.3, 0.4]
+    loss_rate_list = [0.00, 0.02, 0.04, 0.06, 0.08, 0.10, 0.2, 0.3, 0.4]
 
     attribute_dict = pickle.load(open("gt_attr.pkl", 'rb'))
 

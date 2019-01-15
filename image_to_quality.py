@@ -13,7 +13,8 @@ import numpy
 file_list = ["airplane", "automobile", "bird", "cat", "deer",
              "dog", "frog", "horse", "ship", "truck"]
 # loss_rate_list = [0.02, 0.04, 0.06, 0.08, 0.10, 0.2, 0.3]
-loss_rate_list = [0.02, 0.04, 0.06, 0.08, 0.10, 0.2, 0.3, 0.4]
+# loss_rate_list = [0.00, 0.02, 0.04, 0.06, 0.08, 0.10, 0.2, 0.3, 0.4]
+loss_rate_list = [0.04, 0.06, 0.08, 0.10, 0.2, 0.3, 0.4]
 quality_metric_list = ["vifp", "psnr", "ssim"]
 
 # use numpy array to get three quality
