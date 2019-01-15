@@ -143,7 +143,7 @@ def get_all_ml_result(path, name_list, loss_rate_list, attribute_dict, model, mo
         dataset_result[loss_rate] = loss_rate_result
         print(dataset_result)
 
-    pickle.dump(dataset_result, open('data_ml.pkl', 'wb'))
+    pickle.dump(dataset_result, open('data_ml_'+model_name+'.pkl', 'wb'))
     return dataset_result
 
 
@@ -177,9 +177,9 @@ def parse_ml_result(dataset_result, metric):
     plt.plot(loss_rate_list, interleave_list, label="Interleaving without recovery")
     plt.plot(loss_rate_list, interleave_fix_list, label="Interleaving with recovery")
 
-    plt.legend(loc='upper right')
+    plt.legend(loc='lower left')
     plt.xlabel('Loss Rate')
-    plt.ylabel('Top 5 Accuracy for model '+metric)
+    plt.ylabel('Top 5 Accuracy of InceptionResNetV2')
     plt.savefig(metric+'_top_1_acc_vs_loss_rate.png')
     plt.gcf().clear()
 
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     name_list = ["airplane", "automobile", "bird", "cat", "deer",
                  "dog", "frog", "horse", "ship", "truck"]
     # name_list = ["airplane"]
-    loss_rate_list = [0.00, 0.02, 0.04, 0.06, 0.08, 0.10, 0.2, 0.3, 0.4]
+    loss_rate_list = [0.00, 0.02, 0.04, 0.06, 0.08, 0.10, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
 
     attribute_dict = pickle.load(open("gt_attr.pkl", 'rb'))
 
@@ -201,7 +201,7 @@ if __name__ == "__main__":
     emulator_file_list_at_all_loss_rate(path, file_list, loss_rate_list, redo=False)
 
     print("Getting results")
-    model_name = "mobilenet"
+    model_name = "inception_resnet_v2"
     model = get_model(model_name = model_name ,model_fn_mapping = model_fn_mapping)
     dataset_result = get_all_ml_result(path, name_list, loss_rate_list, attribute_dict, model, model_name)
 
